@@ -20,7 +20,7 @@ const hasSystemsOverflow = ref(false)
 const systemsStartOffset = ref(0)
 const systemsLoopDistance = ref(0)
 const systemsMarqueeDuration = ref(18)
-const utilityNow = ref(new Date())
+const utilityNow = useState<string>('navbar-utility-now', () => new Date().toISOString())
 const viewportWidth = ref(Number.POSITIVE_INFINITY)
 const isMobileMenuOpen = ref(false)
 let closeTimer: ReturnType<typeof setTimeout> | null = null
@@ -156,17 +156,40 @@ function syncSystemsCarouselState() {
   systemsMarqueeDuration.value = Math.max(16, Math.round((groupWidth + gap) / 22))
 }
 
-function formatUtilityTime(date: Date) {
-  const locale = selectedLocale.value === 'ru' ? 'ru-RU' : selectedLocale.value === 'en' ? 'en-US' : 'uz-UZ'
+const utilityLocaleParts = {
+  uz: {
+    weekdays: ['yakshanba', 'dushanba', 'seshanba', 'chorshanba', 'payshanba', 'juma', 'shanba'],
+    months: ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentyabr', 'oktyabr', 'noyabr', 'dekabr']
+  },
+  ru: {
+    weekdays: ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'],
+    months: ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря']
+  },
+  en: {
+    weekdays: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+    months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+  }
+} as const
 
-  return new Intl.DateTimeFormat(locale, {
-    hour: '2-digit',
-    minute: '2-digit',
-    weekday: 'long',
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric'
-  }).format(date)
+function pad2(value: number) {
+  return String(value).padStart(2, '0')
+}
+
+function formatUtilityTime(value: string | Date) {
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+
+  const locale = selectedLocale.value
+  const parts = utilityLocaleParts[locale] ?? utilityLocaleParts.uz
+  const weekday = parts.weekdays[date.getDay()] ?? parts.weekdays[0]
+  const month = parts.months[date.getMonth()] ?? parts.months[0]
+  const time = `${pad2(date.getHours())}:${pad2(date.getMinutes())}`
+
+  if (locale === 'en') {
+    return `${date.getFullYear()} ${month.slice(0, 3)} ${pad2(date.getDate())}, ${weekday.slice(0, 3)} ${time}`
+  }
+
+  return `${weekday}, ${pad2(date.getDate())}-${month}, ${date.getFullYear()}, ${time}`
 }
 
 function syncMenuPinState() {
@@ -234,7 +257,7 @@ onMounted(() => {
   syncMenuPinState()
   syncSystemsCarouselState()
   clockTimer = setInterval(() => {
-    utilityNow.value = new Date()
+    utilityNow.value = new Date().toISOString()
   }, 1000 * 30)
   window.addEventListener('scroll', onScroll, { passive: true })
   window.addEventListener('resize', onResize)

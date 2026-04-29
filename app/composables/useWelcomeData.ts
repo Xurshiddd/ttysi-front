@@ -127,9 +127,19 @@ export interface UsefulLinkItem {
   image: Attachment | null
 }
 
+export interface BannerItem {
+  id: number
+  title: string | null
+  order: number
+  status: boolean
+  media_type?: 'image' | 'video' | string | null
+  media: Attachment | Attachment[] | string | null
+}
+
 export interface WelcomeResponse {
   locale: FrontendLocale
   site_information: SiteInformation | null
+  banners?: BannerItem[]
   news: PublishItem[]
   announcements: PublishItem[]
   other_events: PublishItem[]
@@ -173,6 +183,7 @@ const baseWelcomeFallback: Omit<WelcomeResponse, 'locale'> = {
     ],
     image: null
   },
+  banners: [],
   news: [
     {
       id: 1,
@@ -503,6 +514,7 @@ function cloneFallback(locale: FrontendLocale): WelcomeResponse {
       ...baseWelcomeFallback.site_information,
       name: suffix || baseWelcomeFallback.site_information.name
     },
+    banners: [...(baseWelcomeFallback.banners ?? [])],
     news: baseWelcomeFallback.news.map((item) => ({ ...item })),
     announcements: baseWelcomeFallback.announcements.map((item) => ({ ...item })),
     other_events: baseWelcomeFallback.other_events.map((item) => ({ ...item })),

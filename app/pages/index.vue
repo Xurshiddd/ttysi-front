@@ -7,8 +7,8 @@ const pageRoot = ref<HTMLElement | null>(null)
 const {
   siteInfo,
   siteIconUrl,
-  siteImageUrl,
   siteShortTitle,
+  heroBanner,
   pageTitle,
   pageDescription,
   pageKeywords,
@@ -16,11 +16,7 @@ const {
   seoDescription,
   seoKeywords,
   seoImageUrl,
-  heroChips,
-  heroCtas,
-  socialItems,
   statCards,
-  heroSpotlight,
   newsCards,
   announcementCards,
   eventCards,
@@ -35,9 +31,6 @@ const {
 
 const { registerReveals } = useLandingMotion()
 const requestUrl = useRequestURL()
-
-const heroPhone = computed(() => siteInfo.value?.phones?.[0] || '+998 71 253 06 06')
-const heroEmail = computed(() => siteInfo.value?.emails?.[0] || 'info@ttysi.uz')
 
 const newsAction = computed(() => ({ label: "Barcha yangiliklar", href: '#news' }))
 const announcementAction = computed(() => ({ label: "Barcha e'lonlar", href: '#announcements' }))
@@ -101,19 +94,10 @@ onBeforeUnmount(() => {
     <AppNavbar />
 
     <HomeHeroSection
-      :title="pageTitle"
-      :description="pageDescription"
-      :chips="heroChips"
-      :ctas="heroCtas"
-      :socials="socialItems"
-      :spotlight="heroSpotlight"
-      :stats="statCards"
-      :address="siteInfo?.address || 'Toshkent shahri'"
-      :rector-name="siteInfo?.rector_name || 'TTYSI rektori'"
+      :title="heroBanner?.title || pageTitle"
       :established-year="siteInfo?.established_year || null"
-      :phone="heroPhone"
-      :email="heroEmail"
-      :image-url="siteImageUrl"
+      :media-type="heroBanner?.mediaType || null"
+      :media-url="heroBanner?.mediaUrl || null"
     />
 
     <HomeStatisticsSection :items="statCards" />

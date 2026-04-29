@@ -2,6 +2,7 @@ import type { Ref } from 'vue'
 import type { Attachment, FrontendLocale } from '~/composables/useNavbarData'
 import type {
   ActiveYouthItem,
+  BannerItem,
   FacultyItem,
   GalleryItem,
   PartnerItem,
@@ -41,6 +42,12 @@ export interface HomeHeroSpotlight {
   dateLabel: string
   imageUrl: string | null
   badge: string
+}
+
+export interface HomeBanner {
+  title: string
+  mediaType: 'image' | 'video' | null
+  mediaUrl: string | null
 }
 
 export interface HomeStoryCard {
@@ -142,6 +149,24 @@ const localeMap: Record<FrontendLocale, string> = {
   en: 'en-US'
 }
 
+const localeDateParts: Record<FrontendLocale, { days: string[]; monthsLong: string[]; monthsShort: string[] }> = {
+  uz: {
+    days: ['yakshanba', 'dushanba', 'seshanba', 'chorshanba', 'payshanba', 'juma', 'shanba'],
+    monthsLong: ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentyabr', 'oktyabr', 'noyabr', 'dekabr'],
+    monthsShort: ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyun', 'Iyul', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek']
+  },
+  ru: {
+    days: ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'],
+    monthsLong: ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'],
+    monthsShort: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек']
+  },
+  en: {
+    days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+    monthsLong: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+    monthsShort: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  }
+}
+
 function normalizeText(value?: string | null) {
   return (value ?? '')
     .replace(/<[^>]*>/g, ' ')
@@ -160,10 +185,16 @@ function initials(value?: string | null, fallback = 'TT') {
     .toUpperCase()
 }
 
-function toMonthAndDay(date: Date, locale: string) {
+function pad2(value: number) {
+  return String(value).padStart(2, '0')
+}
+
+function toMonthAndDay(date: Date, locale: FrontendLocale) {
+  const tokens = localeDateParts[locale] || localeDateParts.uz
+
   return {
-    dayLabel: new Intl.DateTimeFormat(locale, { day: '2-digit' }).format(date),
-    monthLabel: new Intl.DateTimeFormat(locale, { month: 'short' }).format(date)
+    dayLabel: pad2(date.getDate()),
+    monthLabel: tokens.monthsShort[date.getMonth()] ?? tokens.monthsShort[0] ?? 'Yan'
   }
 }
 
@@ -219,18 +250,41 @@ export function useHomepageContent(locale: Ref<FrontendLocale> | FrontendLocale 
     const parsed = new Date(value)
     if (Number.isNaN(parsed.getTime())) return value
 
-    return new Intl.DateTimeFormat(localeMap[resolvedLocale.value], {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric'
-    }).format(parsed)
+    const tokens = localeDateParts[resolvedLocale.value]
+    const day = pad2(parsed.getDate())
+    const month = tokens.monthsLong[parsed.getMonth()] || tokens.monthsLong[0]
+    const year = parsed.getFullYear()
+
+    if (resolvedLocale.value === 'en') {
+      return `${month} ${day}, ${year}`
+    }
+
+    if (resolvedLocale.value === 'ru') {
+      return `${day} ${month} ${year}`
+    }
+
+    return `${day}-${month}, ${year}`
   }
 
   function formatNumber(value?: number | string | null) {
     if (value === null || value === undefined || value === '') return '0'
+
     const number = Number(value)
     if (Number.isNaN(number)) return String(value)
-    return new Intl.NumberFormat(localeMap[resolvedLocale.value]).format(number)
+
+    const locale = resolvedLocale.value
+    const groupSeparator = locale === 'en' ? ',' : ' '
+    const decimalSeparator = locale === 'en' ? '.' : ','
+    const absolute = Math.abs(number)
+    const [integerPart = '0', decimalPart] = String(absolute).split('.')
+    const groupedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, groupSeparator)
+    const signed = number < 0 ? '-' : ''
+
+    if (decimalPart) {
+      return `${signed}${groupedInteger}${decimalSeparator}${decimalPart}`
+    }
+
+    return `${signed}${groupedInteger}`
   }
 
   function phoneHref(value?: string | null) {
@@ -297,8 +351,39 @@ export function useHomepageContent(locale: Ref<FrontendLocale> | FrontendLocale 
     return resolveUrl(item.video_url || item.video_source?.url || item.file?.url)
   }
 
+  function bannerTitle(item: BannerItem) {
+    return item.title || pageTitle.value
+  }
+
+  function bannerMedia(item?: BannerItem | null) {
+    const media = Array.isArray(item?.media) ? item?.media[0] : item?.media
+
+    if (typeof media === 'string') {
+      return {
+        type: item?.media_type === 'video' ? 'video' as const : 'image' as const,
+        url: resolveUrl(media)
+      }
+    }
+
+    const mimeType = media?.mime_type || ''
+    const explicitType = item?.media_type === 'video' || item?.media_type === 'image'
+      ? item.media_type
+      : null
+    const inferredType = mimeType.startsWith('video/')
+      ? 'video'
+      : mimeType.startsWith('image/')
+        ? 'image'
+        : null
+
+    return {
+      type: explicitType || inferredType,
+      url: resolveAttachment(media)
+    }
+  }
+
   const siteInfo = computed(() => data.value?.site_information)
   const siteSetting = computed(() => navbarData.value?.site_setting)
+  const banners = computed(() => sortActive(data.value?.banners))
   const news = computed(() => sortActive(data.value?.news))
   const announcements = computed(() => sortActive(data.value?.announcements))
   const otherEvents = computed(() => sortActive(data.value?.other_events))
@@ -369,6 +454,20 @@ export function useHomepageContent(locale: Ref<FrontendLocale> | FrontendLocale 
       siteInfo.value?.rector_name ? `Rektor: ${siteInfo.value.rector_name}` : null
     ].filter(Boolean) as string[]
   )
+
+  const heroBanner = computed<HomeBanner | null>(() => {
+    const banner = banners.value[0]
+
+    if (!banner) return null
+
+    const media = bannerMedia(banner)
+
+    return {
+      title: bannerTitle(banner),
+      mediaType: media.type,
+      mediaUrl: media.url
+    }
+  })
 
   const heroCtas = computed<HomeActionLink[]>(() => [
     {
@@ -468,7 +567,7 @@ export function useHomepageContent(locale: Ref<FrontendLocale> | FrontendLocale 
       const rawDate = publishDate(item)
       const parsedDate = rawDate ? new Date(rawDate) : null
       const dateBits = parsedDate && !Number.isNaN(parsedDate.getTime())
-        ? toMonthAndDay(parsedDate, localeMap[resolvedLocale.value])
+        ? toMonthAndDay(parsedDate, resolvedLocale.value)
         : { dayLabel: '--', monthLabel: 'Soon' }
 
       return {
@@ -617,6 +716,7 @@ export function useHomepageContent(locale: Ref<FrontendLocale> | FrontendLocale 
     siteIconUrl,
     siteImageUrl,
     siteShortTitle,
+    heroBanner,
     pageTitle,
     pageDescription,
     pageKeywords,
