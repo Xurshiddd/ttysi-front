@@ -100,6 +100,12 @@ onBeforeUnmount(() => {
       :media-url="heroBanner?.mediaUrl || null"
     />
 
+    <HomeHeroFeedSection
+      :news="newsCards"
+      :announcements="announcementCards"
+      :events="eventCards"
+    />
+
     <HomeStatisticsSection :items="statCards" />
     <HomeNewsSection :items="newsCards" :action="newsAction" />
     <HomeAnnouncementsSection :items="announcementCards" :action="announcementAction" />

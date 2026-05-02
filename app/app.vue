@@ -11,5 +11,6 @@ onMounted(() => {
     <NuxtRouteAnnouncer />
     <AppGlobalLoader />
     <NuxtPage />
+    <AppScrollTop />
   </div>
 </template>

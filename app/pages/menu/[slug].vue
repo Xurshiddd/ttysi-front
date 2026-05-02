@@ -54,6 +54,23 @@ const carouselMediaItems = computed(() =>
     return type === 'image' || type === 'video'
   })
 )
+const lightboxMediaItems = computed(() =>
+  carouselMediaItems.value
+    .map((item) => {
+      const url = resolveUrl(item.url)
+
+      if (!url) return null
+
+      return {
+        id: item.id,
+        type: mediaType(item),
+        url,
+        title: attachmentLabel(item),
+        mimeType: item.mime_type
+      }
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item))
+)
 const documentItems = computed(() =>
   sortAttachments(currentMenu.value?.documents).filter((item) => resolveUrl(item.url))
 )
@@ -147,30 +164,34 @@ useSeoMeta({
     <section v-if="currentMenu" class="home-section menu-page-layout">
       <div class="menu-page-layout__main">
         <article class="home-surface menu-page-overview__lead home-reveal">
-          <HomeCarousel v-if="carouselMediaItems.length" aria-label="Menu media karuseli">
-            <article
-              v-for="item in carouselMediaItems"
-              :key="`overview-media-${item.id}`"
-              class="menu-page-media-card"
-            >
-              <img
-                v-if="mediaType(item) === 'image'"
-                :src="resolveUrl(item.url) || ''"
-                :alt="attachmentLabel(item)"
-                class="menu-page-media-card__asset"
+          <MediaLightbox v-if="lightboxMediaItems.length" :items="lightboxMediaItems" v-slot="{ open }">
+            <HomeCarousel aria-label="Menu media karuseli">
+              <button
+                v-for="(item, index) in carouselMediaItems"
+                :key="`overview-media-${item.id}`"
+                type="button"
+                class="menu-page-media-card"
+                @click="open(index)"
               >
+                <img
+                  v-if="mediaType(item) === 'image'"
+                  :src="resolveUrl(item.url) || ''"
+                  :alt="attachmentLabel(item)"
+                  class="menu-page-media-card__asset"
+                >
 
-              <video
-                v-else
-                class="menu-page-media-card__asset"
-                controls
-                preload="metadata"
-                playsinline
-              >
-                <source :src="resolveUrl(item.url) || ''" :type="item.mime_type || 'video/mp4'">
-              </video>
-            </article>
-          </HomeCarousel>
+                <video
+                  v-else
+                  class="menu-page-media-card__asset"
+                  muted
+                  preload="metadata"
+                  playsinline
+                >
+                  <source :src="resolveUrl(item.url) || ''" :type="item.mime_type || 'video/mp4'">
+                </video>
+              </button>
+            </HomeCarousel>
+          </MediaLightbox>
 
           <h2 v-html="overviewTitleHtml" />
           <div v-html="overviewDescriptionHtml" />
