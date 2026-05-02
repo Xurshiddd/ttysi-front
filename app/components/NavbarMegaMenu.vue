@@ -30,6 +30,10 @@ function resolveHref(item: MenuItem) {
   return item.link || resolveMenuPagePath(item)
 }
 
+function hasChildren(item: MenuItem) {
+  return item.children.length > 0
+}
+
 function ariaLabel(item: MenuItem) {
   const base = menuLabel(item)
   return item.description ? `${base}. ${item.description}` : base
@@ -50,7 +54,7 @@ function isCompactOpen(itemId: number) {
 }
 
 function toggleCompact(item: MenuItem) {
-  if (!item.children.length) return
+  if (!hasChildren(item)) return
 
   compactOpenIds.value = isCompactOpen(item.id)
     ? compactOpenIds.value.filter((id) => id !== item.id)
@@ -117,15 +121,15 @@ const columns = computed(() => {
           <button
             v-else
             type="button"
-            class="navbar__mega-link navbar__mega-link--button"
+            class="navbar__mega-link navbar__mega-link--button is-disabled"
             :aria-label="ariaLabel(item)"
-            @click="toggleCompact(item)"
+            disabled
           >
             {{ menuLabel(item) }}
           </button>
 
           <button
-            v-if="item.children.length"
+            v-if="hasChildren(item)"
             type="button"
             class="navbar__mega-expander"
             :aria-expanded="String(isCompactOpen(item.id))"
@@ -136,7 +140,7 @@ const columns = computed(() => {
           </button>
         </div>
 
-        <div v-if="item.children.length && isCompactOpen(item.id)" class="navbar__mega-compact-children">
+        <div v-if="hasChildren(item) && isCompactOpen(item.id)" class="navbar__mega-compact-children">
           <NavbarMegaMenu
             :items="item.children"
             :compact="compact"
@@ -160,7 +164,7 @@ const columns = computed(() => {
         class="navbar__mega-item"
         :class="{
           'is-active': activeIds[level] === item.id,
-          'has-children': item.children.length
+          'has-children': hasChildren(item)
         }"
         @mouseenter="setActive(level, item)"
       >
@@ -176,7 +180,7 @@ const columns = computed(() => {
             @click="onNavigate"
           >
             {{ menuLabel(item) }}
-            <span v-if="item.children.length" class="navbar__mega-arrow" aria-hidden="true">›</span>
+            <span v-if="hasChildren(item)" class="navbar__mega-arrow" aria-hidden="true">›</span>
           </a>
 
         <NuxtLink
@@ -189,19 +193,20 @@ const columns = computed(() => {
             @click="onNavigate"
           >
             {{ menuLabel(item) }}
-            <span v-if="item.children.length" class="navbar__mega-arrow" aria-hidden="true">›</span>
+            <span v-if="hasChildren(item)" class="navbar__mega-arrow" aria-hidden="true">›</span>
           </NuxtLink>
 
         <button
           v-else
           type="button"
-          class="navbar__mega-link navbar__mega-link--button"
+          class="navbar__mega-link navbar__mega-link--button is-disabled"
           :aria-label="ariaLabel(item)"
           @mouseenter="setActive(level, item)"
           @focus="setActive(level, item)"
+          disabled
         >
           {{ menuLabel(item) }}
-          <span v-if="item.children.length" class="navbar__mega-arrow" aria-hidden="true">›</span>
+          <span v-if="hasChildren(item)" class="navbar__mega-arrow" aria-hidden="true">›</span>
         </button>
       </div>
     </section>

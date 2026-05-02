@@ -104,6 +104,10 @@ function resolveMenuHref(item: MenuItem) {
   return item.link || resolveMenuPagePath(item)
 }
 
+function menuHasChildren(item: MenuItem) {
+  return item.children.length > 0
+}
+
 function systemCode(title: string | null) {
   return (title || 'TT')
     .replace(/[^a-zA-Z0-9]/g, '')
@@ -515,44 +519,59 @@ watch(
           @focusin="openMenu(item.id)"
           @focusout="onItemFocusOut"
         >
-          <a
-            v-if="item.is_link && item.link"
-            :href="resolveMenuHref(item)"
-            class="navbar__menu-link"
-            :aria-haspopup="item.children.length ? 'menu' : undefined"
-            :aria-expanded="item.children.length ? String(openMenuId === item.id) : undefined"
-            target="_blank"
-            rel="noreferrer"
-            @click="closeMobileMenu"
-          >
-            {{ menuLabel(item) }}
-          </a>
+          <div class="navbar__menu-row">
+            <a
+              v-if="item.is_link && item.link"
+              :href="resolveMenuHref(item)"
+              class="navbar__menu-link"
+              :aria-haspopup="menuHasChildren(item) ? 'menu' : undefined"
+              :aria-expanded="menuHasChildren(item) ? String(openMenuId === item.id) : undefined"
+              target="_blank"
+              rel="noreferrer"
+              @click="closeMobileMenu"
+            >
+              {{ menuLabel(item) }}
+            </a>
 
-          <NuxtLink
-            v-else-if="item.is_link"
-            :to="resolveMenuHref(item)"
-            class="navbar__menu-link"
-            :aria-haspopup="item.children.length ? 'menu' : undefined"
-            :aria-expanded="item.children.length ? String(openMenuId === item.id) : undefined"
-            @click="closeMobileMenu"
-          >
-            {{ menuLabel(item) }}
-          </NuxtLink>
+            <NuxtLink
+              v-else-if="item.is_link"
+              :to="resolveMenuHref(item)"
+              class="navbar__menu-link"
+              :aria-haspopup="menuHasChildren(item) ? 'menu' : undefined"
+              :aria-expanded="menuHasChildren(item) ? String(openMenuId === item.id) : undefined"
+              @click="closeMobileMenu"
+            >
+              {{ menuLabel(item) }}
+            </NuxtLink>
 
-          <button
-            v-else
-            type="button"
-            class="navbar__menu-link navbar__menu-link--button"
-            :aria-haspopup="item.children.length ? 'menu' : undefined"
-            :aria-expanded="item.children.length ? String(openMenuId === item.id) : undefined"
-            @click="item.children.length ? toggleMenu(item.id) : undefined"
-            @keydown.esc="openMenuId = null"
-          >
-            {{ menuLabel(item) }}
-          </button>
+            <button
+              v-else
+              type="button"
+              class="navbar__menu-link navbar__menu-link--button is-disabled"
+              :aria-haspopup="menuHasChildren(item) ? 'menu' : undefined"
+              :aria-expanded="menuHasChildren(item) ? String(openMenuId === item.id) : undefined"
+              disabled
+            >
+              {{ menuLabel(item) }}
+            </button>
+
+            <button
+              v-if="isCompactNav && menuHasChildren(item)"
+              type="button"
+              class="navbar__menu-expander"
+              :aria-expanded="String(openMenuId === item.id)"
+              :aria-label="`${menuLabel(item)} ichki bo'limlarini ochish`"
+              @click.stop="toggleMenu(item.id)"
+              @keydown.esc="openMenuId = null"
+            >
+              <span class="navbar__menu-expander-icon" aria-hidden="true">
+                {{ openMenuId === item.id ? '−' : '+' }}
+              </span>
+            </button>
+          </div>
 
           <div
-            v-if="item.children.length"
+            v-if="menuHasChildren(item)"
             v-show="openMenuId === item.id"
             class="navbar__dropdown"
             @mouseenter="cancelClose"

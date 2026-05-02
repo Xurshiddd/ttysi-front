@@ -31,6 +31,24 @@ const heroStyle = computed(() =>
       }
     : undefined
 )
+
+function playHeroVideo(event: Event) {
+  const video = event.currentTarget as HTMLVideoElement | null
+
+  if (!video) return
+
+  video.loop = true
+  void video.play()
+}
+
+function replayHeroVideo(event: Event) {
+  const video = event.currentTarget as HTMLVideoElement | null
+
+  if (!video) return
+
+  video.currentTime = 0
+  void video.play()
+}
 </script>
 
 <template>
@@ -43,9 +61,11 @@ const heroStyle = computed(() =>
       muted
       loop
       playsinline
-      preload="metadata"
+      preload="auto"
       aria-hidden="true"
-    />
+      @canplay="playHeroVideo"
+      @ended="replayHeroVideo"
+    ></video>
 
     <div class="landing-hero__inner" data-reveal>
       <div class="landing-hero__copy">
